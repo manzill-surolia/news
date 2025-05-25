@@ -44,16 +44,13 @@
 <script>
 const RSS_URL = 'https://news.google.com/rss/search?q=%E0%A4%9C%E0%A4%AF%E0%A4%AA%E0%A5%81%E0%A4%B0&hl=hi&gl=IN&ceid=IN:hi';
 
-fetch(`https://api.allorigins.win/raw?disableCache=true&url=${encodeURIComponent(RSS_URL)}`)
-  .then(response => response.text())
-  .then(str => new window.DOMParser().parseFromString(str, "application/xml"))
+fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`)
+  .then(response => response.json())
   .then(data => {
-    const items = data.querySelectorAll("item");
     let newsHTML = '';
-    items.forEach(item => {
-      const title = item.querySelector('title').textContent;
-      let description = item.querySelector('description').textContent;
-      description = description.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
+    data.items.forEach(item => {
+      const title = item.title;
+      let description = item.description.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
 
       newsHTML += `
         <div class="news-item">
