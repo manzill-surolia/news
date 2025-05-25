@@ -6,22 +6,29 @@
     <title>जयपुर समाचार</title>
     <style>
         body {
-            font-size: 0.5em;
+            font-size: 0.9em;
             padding: 10px;
             margin: 0;
             font-family: Arial, sans-serif;
         }
         h1 {
-            font-size: 1.2em;
+            font-size: 1.5em;
         }
         h2 {
-            font-size: 1em;
+            font-size: 1.2em;
             margin-bottom: 10px;
+        }
+        button {
+            font-size: 1em;
+            padding: 5px 10px;
+            margin-bottom: 15px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <h1>जयपुर समाचार</h1>
+    <button onclick="fetchNews()">रिफ्रेश करें</button>
     <div id="news"></div>
 
     <script>
