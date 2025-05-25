@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +10,8 @@
             padding: 10px;
             margin: 0;
             font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s ease;
         }
         h1 {
             font-size: 1.5em;
@@ -17,12 +19,43 @@
         h2 {
             font-size: 1.2em;
             margin-bottom: 10px;
+            animation: fadeInSlide 0.5s ease-in-out;
         }
         button {
             font-size: 1em;
             padding: 5px 10px;
             margin-bottom: 15px;
             cursor: pointer;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #news.loading::before {
+            content: 'Loading...';
+            display: block;
+            margin-bottom: 10px;
+            color: gray;
+            animation: fadeIn 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0.4; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #news {
+            transition: opacity 0.5s ease-in-out;
+        }
+        #news.loading {
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -35,6 +68,8 @@
     const RSS_URL = 'https://news.google.com/rss/search?q=%E0%A4%9C%E0%A4%AF%E0%A4%AA%E0%A5%81%E0%A4%B0&hl=hi&gl=IN&ceid=IN:hi';
 
     function fetchNews() {
+      const newsContainer = document.getElementById('news');
+      newsContainer.classList.add('loading');
       fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`)
         .then(response => response.json())
         .then(data => {
@@ -42,11 +77,14 @@
           data.items.forEach(item => {
             newsHTML += `<h2>${item.title}</h2>`;
           });
-          document.getElementById('news').innerHTML = newsHTML;
+          newsContainer.innerHTML = newsHTML;
         })
         .catch(error => {
           console.error('Error fetching or parsing:', error);
-          document.getElementById('news').innerHTML = 'समाचार लोड नहीं हो पाए।';
+          newsContainer.innerHTML = 'समाचार लोड नहीं हो पाए।';
+        })
+        .finally(() => {
+          newsContainer.classList.remove('loading');
         });
     }
 
