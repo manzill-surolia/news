@@ -1,56 +1,77 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jaipur News</title>
-  <style>
-    body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; background: #f9f9f9; }
-    h2 { color: #d00000; }
-    h3 { margin-top: 20px; color: #222; }
-    p { font-size: 1rem; color: #444; }
-    hr { margin: 20px 0; border: none; border-top: 1px solid #ccc; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jaipur News - Manzill</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f9fc;
+            color: #333;
+            padding: 0;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 15px;
+        }
+        .news-item {
+            background: white;
+            border-radius: 12px;
+            margin: 10px 0;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            font-size: 18px;
+            margin: 0 0 8px;
+            color: #1f6feb;
+        }
+        p {
+            font-size: 15px;
+            line-height: 1.5;
+        }
+    </style>
 </head>
 <body>
-  <h2>जयपुर की ताजा खबरें</h2>
-  <div id="news-container">Loading...</div>
+<div class="container">
+    <h1>जयपुर समाचार</h1>
+    <div id="news"></div>
+</div>
 
-  <script>
-    async function fetchNews() {
-      const feedUrl = 'https://news.google.com/rss/search?q=जयपुर&hl=hi&gl=IN&ceid=IN:hi';
-      const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(feedUrl);
+<script>
+    const RSS_URL = 'https://news.google.com/rss/search?q=%E0%A4%9C%E0%A4%AF%E0%A4%AA%E0%A5%81%E0%A4%B0&hl=hi&gl=IN&ceid=IN:hi';
 
-      try {
-        const res = await fetch(proxy);
-        const xml = await res.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xml, "text/xml");
+    fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(RSS_URL)}`)
+        .then(response => response.json())
+        .then(data => {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data.contents, "application/xml");
 
-        const items = doc.querySelectorAll("item");
-        const container = document.getElementById("news-container");
-        container.innerHTML = '';
+            const items = xmlDoc.querySelectorAll("item");
 
-        items.forEach((item, i) => {
-          if (i >= 10) return;
-          const title = item.querySelector("title").textContent;
-          const descRaw = item.querySelector("description").textContent;
+            let newsHTML = '';
+            items.forEach(item => {
+                const title = item.querySelector('title').textContent;
+                let description = item.querySelector('description').textContent;
 
-          const desc = descRaw.replace(/<a[^>]*>(.*?)<\/a>/g, '')
-                              .replace(/<[^>]+>/g, '')
-                              .replace(/\s*-\s*[^\s]+\s*News.*$/, '')  // remove trailing source name like "- News18 Hindi"
-                              .split('. ').slice(0, 2).join('. ') + '.';
+                // Remove hyperlinks from description
+                description = description.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
+                
+                newsHTML += `
+                    <div class="news-item">
+                        <h2>${title}</h2>
+                        <p>${description}</p>
+                    </div>
+                `;
+            });
 
-          const newsBox = document.createElement("div");
-          newsBox.innerHTML = `<h3>${title}</h3><p>${desc}</p><hr>`;
-          container.appendChild(newsBox);
-        });
-      } catch (err) {
-        document.getElementById("news-container").textContent = "समाचार लोड नहीं हो सके।";
-      }
-    }
+            document.getElementById('news').innerHTML = newsHTML;
+        })
+        .catch(error => console.error('Error fetching news:', error));
+</script>
 
-    fetchNews();
-  </script>
 </body>
 </html>
