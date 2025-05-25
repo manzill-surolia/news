@@ -1,149 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jaipur News</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: auto;
-      padding: 1rem;
-    }
-    h1 { margin-bottom: 1rem; }
-    ul { list-style-type: none; padding: 0; }
-    li { padding: 0.4rem 0; border-bottom: 1px solid #ddd; }
-    .src { color: #555; font-size: 0.9rem; }
-    #error   { color: crimson; font-weight: bold; }
-    #loading { color: #555; font-size: 1.1rem; text-align: center; margin-top: 1rem; animation: blink 1.2s linear infinite alternate; }
-    @keyframes blink { 0% {opacity: .3;} 100% {opacity: 1;} }
+    body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; background: #f9f9f9; }
+    h2 { color: #d00000; }
+    h3 { margin-top: 20px; color: #222; }
+    p { font-size: 1rem; color: #444; }
+    hr { margin: 20px 0; border: none; border-top: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <h1>Jaipur News</h1>
-  <p id="loading">Loading headlines…</p>
-  <ul id="news" hidden></ul>
-  <p id="error" hidden></p>
+  <h2>जयपुर की ताजा खबरें</h2>
+  <div id="news-container">Loading...</div>
 
-<script>
-/* -------------------------------------------------------------
-   CONFIGURATION
-------------------------------------------------------------- */
-const RSS_URL = 'https://news.google.com/rss/search?q=जयपुर&hl=hi&gl=IN&ceid=IN:hi';
+  <script>
+    async function fetchNews() {
+      const feedUrl = 'https://news.google.com/rss/search?q=जयपुर&hl=hi&gl=IN&ceid=IN:hi';
+      const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(feedUrl);
 
-// Free CORS relays (rotate until one works) — keep a short list for speed.
-const PROXIES = [
-  // param‑style (encodeURIComponent)
-  'https://api.allorigins.win/raw?disableCache=true&url=',
-  // path‑style  (encodeURI)
-  'https://thingproxy.freeboard.io/fetch/',
-  // param‑style
-  'https://api.codetabs.com/v1/proxy?quest=',
-];
+      try {
+        const res = await fetch(proxy);
+        const xml = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xml, "text/xml");
 
-const LIMIT         = 40;  // max headlines
-const LOADER_MIN_MS = 500; // ensure loader visible ≥ this long (ms)
-const TIMEOUT_MS    = 6000; // abort a slow proxy fetch after 6 s
+        const items = doc.querySelectorAll("item");
+        const container = document.getElementById("news-container");
+        container.innerHTML = '';
 
-/* -------------------------------------------------------------
-   UTILITY HELPERS
-------------------------------------------------------------- */
-const show = el => (el.hidden = false);
-const hide = el => (el.hidden = true);
-const escapeRE = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        items.forEach((item, i) => {
+          if (i >= 10) return;
+          const title = item.querySelector("title").textContent;
+          const descRaw = item.querySelector("description").textContent;
 
-function buildProxyUrl(proxy, target) {
-  // detect param‑style via trailing = or ?param=
-  return proxy.includes('=') && proxy.endsWith('=')
-    ? proxy + encodeURIComponent(target)
-    : proxy + encodeURI(target);
-}
+          const desc = descRaw.replace(/<a[^>]*>(.*?)<\/a>/g, '')
+                              .replace(/<[^>]+>/g, '')
+                              .replace(/\s*-\s*[^\s]+\s*News.*$/, '')  // remove trailing source name like "- News18 Hindi"
+                              .split('. ').slice(0, 2).join('. ') + '.';
 
-// fetch with timeout wrapper
-function fetchWithTimeout(url, ms) {
-  return Promise.race([
-    fetch(url, { mode: 'cors' }),
-    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
-  ]);
-}
-
-async function fetchWithFallback(url) {
-  for (const px of PROXIES) {
-    try {
-      const u = buildProxyUrl(px, url);
-      const res = await fetchWithTimeout(u, TIMEOUT_MS);
-      if (res.ok) return res.text();
-    } catch (_) {
-      /* try next */
+          const newsBox = document.createElement("div");
+          newsBox.innerHTML = `<h3>${title}</h3><p>${desc}</p><hr>`;
+          container.appendChild(newsBox);
+        });
+      } catch (err) {
+        document.getElementById("news-container").textContent = "समाचार लोड नहीं हो सके।";
+      }
     }
-  }
 
-  /* direct fetch attempt (may fail CORS) guarded in try */
-  try {
-    const res = await fetchWithTimeout(url, TIMEOUT_MS);
-    if (res.ok) return res.text();
-  } catch (_) {/* ignore */}
-
-  throw new Error('Every CORS proxy timed out or blocked');
-}
-
-/* -------------------------------------------------------------
-   MAIN
-------------------------------------------------------------- */
-(async () => {
-  const start = Date.now();
-  try {
-    const xml = await fetchWithFallback(RSS_URL);
-    const doc = new DOMParser().parseFromString(xml, 'text/xml');
-    const items = Array.from(doc.querySelectorAll('item')).slice(0, LIMIT);
-    if (!items.length) throw new Error('RSS empty');
-
-    const ul = document.getElementById('news');
-
-    items.forEach(item => {
-      let title = item.querySelector('title').textContent.trim();
-      let src   = '';
-
-      const srcEl = item.querySelector('source');
-      if (srcEl) src = srcEl.textContent.trim();
-      if (!src) {
-        const parts = title.split(' - ');
-        if (parts.length > 1) {
-          src = parts.pop();
-          title = parts.join(' - ');
-        }
-      }
-      if (src) {
-        const strip = new RegExp('\\s*[-–—]\\s*' + escapeRE(src) + '$', 'i');
-        title = title.replace(strip, '').trim();
-      }
-
-      const li = document.createElement('li');
-      li.textContent = title + ' ';
-      if (src) {
-        const span = document.createElement('span');
-        span.className = 'src';
-        span.textContent = '(' + src + ')';
-        li.appendChild(span);
-      }
-      ul.appendChild(li);
-    });
-
-    /* ensure loader stays for minimum time */
-    const elapsed = Date.now() - start;
-    setTimeout(() => {
-      hide(document.getElementById('loading'));
-      show(ul);
-    }, Math.max(0, LOADER_MIN_MS - elapsed));
-  } catch (err) {
-    console.error(err);
-    const p = document.getElementById('error');
-    p.textContent = 'Unable to load news (' + err.message + ')';
-    hide(document.getElementById('loading'));
-    show(p);
-  }
-})();
-</script>
+    fetchNews();
+  </script>
 </body>
 </html>
