@@ -62,6 +62,7 @@
 <body>
     <h1>जयपुर समाचार</h1>
     <button onclick="fetchNews()">रिफ्रेश करें</button>
+    <div id="last-updated" style="margin-bottom: 10px; color: gray;"></div>
     <div id="news"></div>
 
     <script>
@@ -69,15 +70,21 @@
 
     function fetchNews() {
       const newsContainer = document.getElementById('news');
+      const lastUpdated = document.getElementById('last-updated');
       newsContainer.classList.add('loading');
-      fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`)
+      newsContainer.innerHTML = '';
+
+      const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}&t=${new Date().getTime()}`;
+      fetch(url)
         .then(response => response.json())
         .then(data => {
           let newsHTML = '';
-          data.items.forEach(item => {
+          data.items.slice(0, 30).forEach(item => {
             newsHTML += `<h2>${item.title}</h2>`;
           });
           newsContainer.innerHTML = newsHTML;
+          const now = new Date();
+          lastUpdated.textContent = `नवीनतम जानकारी: ${now.toLocaleTimeString()} (${now.toLocaleDateString()})`;
         })
         .catch(error => {
           console.error('Error fetching or parsing:', error);
