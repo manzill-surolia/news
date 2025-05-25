@@ -42,35 +42,32 @@
 </div>
 
 <script>
-    const RSS_URL = 'https://news.google.com/rss/search?q=%E0%A4%9C%E0%A4%AF%E0%A4%AA%E0%A5%81%E0%A4%B0&hl=hi&gl=IN&ceid=IN:hi';
+const RSS_URL = 'https://news.google.com/rss/search?q=%E0%A4%9C%E0%A4%AF%E0%A4%AA%E0%A5%81%E0%A4%B0&hl=hi&gl=IN&ceid=IN:hi';
 
-    fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(RSS_URL)}`)
-        .then(response => response.json())
-        .then(data => {
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data.contents, "application/xml");
+fetch(`https://api.allorigins.win/raw?disableCache=true&url=${encodeURIComponent(RSS_URL)}`)
+  .then(response => response.text())
+  .then(str => new window.DOMParser().parseFromString(str, "application/xml"))
+  .then(data => {
+    const items = data.querySelectorAll("item");
+    let newsHTML = '';
+    items.forEach(item => {
+      const title = item.querySelector('title').textContent;
+      let description = item.querySelector('description').textContent;
+      description = description.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
 
-            const items = xmlDoc.querySelectorAll("item");
-
-            let newsHTML = '';
-            items.forEach(item => {
-                const title = item.querySelector('title').textContent;
-                let description = item.querySelector('description').textContent;
-
-                // Remove hyperlinks from description
-                description = description.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
-                
-                newsHTML += `
-                    <div class="news-item">
-                        <h2>${title}</h2>
-                        <p>${description}</p>
-                    </div>
-                `;
-            });
-
-            document.getElementById('news').innerHTML = newsHTML;
-        })
-        .catch(error => console.error('Error fetching news:', error));
+      newsHTML += `
+        <div class="news-item">
+          <h2>${title}</h2>
+          <p>${description}</p>
+        </div>
+      `;
+    });
+    document.getElementById('news').innerHTML = newsHTML;
+  })
+  .catch(error => {
+    console.error('Error fetching or parsing:', error);
+    document.getElementById('news').innerHTML = 'Error loading news.';
+  });
 </script>
 
 </body>
