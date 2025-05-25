@@ -2,7 +2,23 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>जयपुर समाचार</title>
+    <style>
+        body {
+            font-size: 0.5em;
+            padding: 10px;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            font-size: 1.2em;
+        }
+        h2 {
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
     <h1>जयपुर समाचार</h1>
@@ -11,19 +27,24 @@
     <script>
     const RSS_URL = 'https://news.google.com/rss/search?q=%E0%A4%9C%E0%A4%AF%E0%A4%AA%E0%A5%81%E0%A4%B0&hl=hi&gl=IN&ceid=IN:hi';
 
-    fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`)
-      .then(response => response.json())
-      .then(data => {
-        let newsHTML = '';
-        data.items.forEach(item => {
-          newsHTML += `<h2>${item.title}</h2>`;
+    function fetchNews() {
+      fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}`)
+        .then(response => response.json())
+        .then(data => {
+          let newsHTML = '';
+          data.items.forEach(item => {
+            newsHTML += `<h2>${item.title}</h2>`;
+          });
+          document.getElementById('news').innerHTML = newsHTML;
+        })
+        .catch(error => {
+          console.error('Error fetching or parsing:', error);
+          document.getElementById('news').innerHTML = 'समाचार लोड नहीं हो पाए।';
         });
-        document.getElementById('news').innerHTML = newsHTML;
-      })
-      .catch(error => {
-        console.error('Error fetching or parsing:', error);
-        document.getElementById('news').innerHTML = 'समाचार लोड नहीं हो पाए।';
-      });
+    }
+
+    fetchNews();
+    setInterval(fetchNews, 60000); // Refresh every 1 minute
     </script>
 </body>
 </html>
