@@ -11,25 +11,11 @@
       margin: auto;
       padding: 1rem;
     }
-    h1 {
-      margin-bottom: 1rem;
-    }
-    ul {
-      list-style-type: none;
-      padding: 0;
-    }
-    li {
-      padding: 0.4rem 0;
-      border-bottom: 1px solid #ddd;
-    }
-    .src {
-      color: #555;
-      font-size: 0.9rem;
-    }
-    #error {
-      color: crimson;
-      font-weight: bold;
-    }
+    h1 { margin-bottom: 1rem; }
+    ul { list-style-type: none; padding: 0; }
+    li { padding: 0.4rem 0; border-bottom: 1px solid #ddd; }
+    .src { color: #555; font-size: 0.9rem; }
+    #error { color: crimson; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -43,7 +29,7 @@
 ------------------------------------------------------------- */
 const RSS_URL    = 'https://news.google.com/rss/search?q=%E0%A4%9C%E0%A4%AF%E0%A4%AA%E0%A5%81%E0%A4%B0&hl=hi&gl=IN&ceid=IN:hi';
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-const LIMIT      = 40; // show up to 40 headlines
+const LIMIT      = 40; // max headlines
 
 /* -------------------------------------------------------------
    FETCH + RENDER
@@ -51,31 +37,39 @@ const LIMIT      = 40; // show up to 40 headlines
 fetch(CORS_PROXY + encodeURIComponent(RSS_URL))
   .then(r => { if (!r.ok) throw new Error('fetch failed'); return r.text(); })
   .then(xml => {
-    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const doc   = new DOMParser().parseFromString(xml, 'text/xml');
     const items = Array.from(doc.querySelectorAll('item')).slice(0, LIMIT);
     if (!items.length) throw new Error('no items');
 
     const ul = document.getElementById('news');
 
     items.forEach(item => {
-      const li = document.createElement('li');
-
-      // Extract title text (no hyperlink)
-      let titleText = item.querySelector('title').textContent.trim();
-
-      // Attempt to pull source either from <source> tag or from title suffix
+      let titleText  = item.querySelector('title').textContent.trim();
       let sourceText = '';
+
+      // 1) Pull source from <source> element if present
       const sourceEl = item.querySelector('source');
       if (sourceEl) {
         sourceText = sourceEl.textContent.trim();
-      } else {
-        const split = titleText.split(' - ');
-        if (split.length > 1) {
-          sourceText = split.pop(); // last chunk is source
-          titleText = split.join(' - '); // rest is title
+      }
+
+      // 2) If source not found yet, infer from dash suffix in title
+      if (!sourceText) {
+        const parts = titleText.split(' - ');
+        if (parts.length > 1) {
+          sourceText = parts.pop();
+          titleText  = parts.join(' - ');
         }
       }
 
+      // 3) If source known *and* still present at end of title, strip it
+      if (sourceText) {
+        const regex = new RegExp("\\s*[-–—]\\s*" + sourceText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + "$", 'i');
+        titleText = titleText.replace(regex, '').trim();
+      }
+
+      // Build list item
+      const li = document.createElement('li');
       li.textContent = titleText + ' ';
       if (sourceText) {
         const span = document.createElement('span');
@@ -83,7 +77,6 @@ fetch(CORS_PROXY + encodeURIComponent(RSS_URL))
         span.textContent = '(' + sourceText + ')';
         li.appendChild(span);
       }
-
       ul.appendChild(li);
     });
   })
