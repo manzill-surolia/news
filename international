@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>जयपुर समाचार</title>
+    <style>
+        body {
+            font-size: 0.9em;
+            padding: 10px;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s ease;
+        }
+        h1 {
+            font-size: 1.5em;
+        }
+        h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            animation: fadeInSlide 0.5s ease-in-out;
+        }
+        button {
+            font-size: 1em;
+            padding: 5px 10px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #news.loading::before {
+            content: 'Loading...';
+            display: block;
+            margin-bottom: 10px;
+            color: gray;
+            animation: fadeIn 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0.4; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #news {
+            transition: opacity 0.5s ease-in-out;
+        }
+        #news.loading {
+            opacity: 0.5;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>जयपुर समाचार</h1>
+    <button onclick="fetchNews()">रिफ्रेश करें</button>
+    <div id="news"></div>
+
+    <script>
+    const RSS_FEED = 'https://feeds.bbci.co.uk/news/world/rss.xml'; // Reliable feed with images
+    const FALLBACK_IMAGE = 'https://via.placeholder.com/600x400?text=No+Image';
+
+    async function fetchNews() {
+      const newsContainer = document.getElementById('news');
+      newsContainer.classList.add('loading');
+      let newsHTML = '';
+
+      try {
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEED)}`;
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const data = await response.json();
+        if (!data || !data.items || !Array.isArray(data.items)) {
+          throw new Error('Invalid data structure');
+        }
+
+        for (const item of data.items) {
+          let imageUrl = item.thumbnail || FALLBACK_IMAGE;
+
+          // Try extracting image from description if thumbnail not found
+          if (!item.thumbnail) {
+            const imgMatch = item.description && item.description.match(/<img.*?src=\"(.*?)\"/);
+            if (imgMatch) imageUrl = imgMatch[1];
+          }
+
+          newsHTML += `<div style="margin-bottom: 20px;">
+            <h2>${item.title}</h2>
+            <img src="${imageUrl}" alt="${item.title}" />
+          </div>`;
+        }
+
+        newsContainer.innerHTML = newsHTML;
+      } catch (error) {
+        console.error('Error fetching news:', error);
+        newsContainer.innerHTML = 'समाचार लोड नहीं हो पाए। कृपया पुनः प्रयास करें।';
+      } finally {
+        newsContainer.classList.remove('loading');
+      }
+    }
+
+    fetchNews();
+    setInterval(fetchNews, 60000); // Refresh every 1 minute
+    </script>
+</body>
+</html>
